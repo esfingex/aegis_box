@@ -171,9 +171,7 @@ def launch_sandbox(binary_path, profile_path, app_name):
     
     cmd = [
         "firejail",
-        f"--overlay-dir={overlay_dir}",
-        "--socket=x11",
-        "--socket=wayland"
+        f"--private={overlay_dir}"
     ]
     
     # Add profile network parameters
