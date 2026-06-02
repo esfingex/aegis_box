@@ -12,13 +12,7 @@ from views.sidebar import SidebarFrame
 from views.workspace import WorkspaceFrame
 from views.detail_drawer import DetailDrawerFrame
 from views.dialogs import AddAppDialog, CreateProfileDialog
-
-# Import backend modules
-from style import THEME_QSS
-from database import (
-    get_pending_sessions, get_registered_apps, update_session_status, 
-    get_cached_libs, register_app
-)
+from i18n import _
 
 # Standard Profiles Path
 PROFILES_DIR = Path("/home/esfingex/workspace/aegis_box/profiles")
@@ -26,7 +20,7 @@ PROFILES_DIR = Path("/home/esfingex/workspace/aegis_box/profiles")
 class AegisBoxApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Aegis Box - Gestor de Aislamiento & Compatibilidad")
+        self.setWindowTitle(_("app_title"))
         self.resize(1200, 750)
         
         self.current_view = "dashboard"
@@ -75,29 +69,29 @@ class AegisBoxApp(QMainWindow):
             self.current_view = "profiles"
             self.workspace.btn_add_profile.show()
             self.drawer.show_profile_view()
-            self.workspace.title_lbl.setText("Perfiles de Seguridad JSON")
+            self.workspace.title_lbl.setText(_("sidebar_profiles"))
             self.load_profiles_list()
         elif clicked_btn == self.sidebar.btn_network:
             self.current_view = "networks"
             self.workspace.btn_add_network.show()
             self.drawer.show_network_view()
-            self.workspace.title_lbl.setText("Interfaces de Red Virtuales")
+            self.workspace.title_lbl.setText(_("sidebar_network"))
             self.load_networks_list()
         else:
             self.drawer.show_audit_view()
             if clicked_btn == self.sidebar.btn_dashboard:
                 self.current_view = "dashboard"
-                self.workspace.title_lbl.setText("Sesiones de Sandbox Pendientes")
+                self.workspace.title_lbl.setText(_("sidebar_dashboard"))
                 self.load_pending_sessions()
             elif clicked_btn == self.sidebar.btn_apps:
                 self.current_view = "apps"
                 self.workspace.btn_add_app.show()
-                self.workspace.title_lbl.setText("Aplicaciones Configuradas")
+                self.workspace.title_lbl.setText(_("sidebar_apps"))
                 self.load_configured_apps()
                 self.load_app_edit_profiles()
             elif clicked_btn == self.sidebar.btn_cache:
                 self.current_view = "libs"
-                self.workspace.title_lbl.setText("Librerías Compartidas en Caché")
+                self.workspace.title_lbl.setText(_("sidebar_cache"))
                 self.load_cached_libs()
 
     # --- Table Click Handler ---
@@ -122,7 +116,9 @@ class AegisBoxApp(QMainWindow):
     def load_networks_list(self):
         self.workspace.table.setRowCount(0)
         self.workspace.table.setColumnCount(3)
-        self.workspace.table.setHorizontalHeaderLabels(["Interfaz", "Gateway / Subred", "Estado Host"])
+        self.workspace.table.setHorizontalHeaderLabels([
+            _("table_net_name"), _("table_net_ip"), _("table_net_status")
+        ])
         
         bridges = self.discover_host_bridges()
         self.workspace.table.setRowCount(len(bridges))
@@ -141,18 +137,15 @@ class AegisBoxApp(QMainWindow):
                 for dev in net_dir.iterdir():
                     if (dev / "bridge").exists():
                         dev_name = dev.name
-                        
-                        # 1. Probe for IP range
-                        ip = "Sin IP asignada"
+                        ip = "No IP assigned"
                         try:
                             res = subprocess.run(["ip", "addr", "show", dev_name], capture_output=True, text=True)
                             for line in res.stdout.splitlines():
                                 if "inet " in line:
-                                    ip = line.split()[1] # e.g. 10.10.10.1/24
+                                    ip = line.split()[1]
                         except Exception:
                             pass
                             
-                        # 2. Probe operational status
                         status = "Activo"
                         try:
                             with open(dev / "operstate", "r") as f:
@@ -166,7 +159,7 @@ class AegisBoxApp(QMainWindow):
                             "status": f"🟢 {status}" if status == "UP" or status == "UNKNOWN" else f"🔴 {status}"
                         })
         except Exception as e:
-            print(f"[-] Error descubriendo puentes de red: {e}")
+            print(f"[-] Error discovering network bridges: {e}")
             
         return bridges
 
@@ -174,7 +167,9 @@ class AegisBoxApp(QMainWindow):
     def load_pending_sessions(self):
         self.workspace.table.setRowCount(0)
         self.workspace.table.setColumnCount(4)
-        self.workspace.table.setHorizontalHeaderLabels(["ID Sesión", "Aplicación", "Perfil Utilizado", "Tamaño Overlay"])
+        self.workspace.table.setHorizontalHeaderLabels([
+            _("table_session_id"), _("table_app"), _("table_profile"), _("table_size")
+        ])
         
         sessions = get_pending_sessions()
         self.workspace.table.setRowCount(len(sessions))
@@ -187,7 +182,9 @@ class AegisBoxApp(QMainWindow):
     def load_configured_apps(self):
         self.workspace.table.setRowCount(0)
         self.workspace.table.setColumnCount(3)
-        self.workspace.table.setHorizontalHeaderLabels(["App ID", "Nombre Visual", "Ruta Ejecutable"])
+        self.workspace.table.setHorizontalHeaderLabels([
+            _("table_app_id"), _("table_display_name"), _("table_exec_path")
+        ])
         
         apps = get_registered_apps()
         self.workspace.table.setRowCount(len(apps))
@@ -199,7 +196,9 @@ class AegisBoxApp(QMainWindow):
     def load_cached_libs(self):
         self.workspace.table.setRowCount(0)
         self.workspace.table.setColumnCount(3)
-        self.workspace.table.setHorizontalHeaderLabels(["Librería", "Versión", "Tamaño (Bytes)"])
+        self.workspace.table.setHorizontalHeaderLabels([
+            _("table_lib_name"), _("table_lib_version"), _("table_lib_size")
+        ])
         
         libs = get_cached_libs()
         self.workspace.table.setRowCount(len(libs))
@@ -211,7 +210,9 @@ class AegisBoxApp(QMainWindow):
     def load_profiles_list(self):
         self.workspace.table.setRowCount(0)
         self.workspace.table.setColumnCount(3)
-        self.workspace.table.setHorizontalHeaderLabels(["Nombre Perfil", "Descripción", "Motor"])
+        self.workspace.table.setHorizontalHeaderLabels([
+            _("table_profile_name" if False else "Nombre Perfil"), _("table_profile_desc"), _("table_profile_engine")
+        ])
         
         try:
             profiles = [f for f in os.listdir(PROFILES_DIR) if f.endswith(".json")]
@@ -224,16 +225,16 @@ class AegisBoxApp(QMainWindow):
                 self.workspace.table.setItem(idx, 1, QTableWidgetItem(data.get("description", "Sin descripción")))
                 self.workspace.table.setItem(idx, 2, QTableWidgetItem(data.get("engine", "firejail")))
         except Exception as e:
-            print(f"[-] Error cargando perfiles: {e}")
+            print(f"[-] Error loading profiles: {e}")
 
     # --- Detail Population Handlers ---
     def load_audit_into_drawer(self, session_id):
-        self.drawer.drawer_title.setText(f"Sesión: {session_id}")
+        self.drawer.drawer_title.setText(f"Session: {session_id}")
         self.drawer.list_libs.clear()
         
         libs_list = [
-            "🔗 libc.so.6 => /usr/lib/libc.so.6 [Sistema]",
-            "🔗 libm.so.6 => /usr/lib/libm.so.6 [Sistema]",
+            "🔗 libc.so.6 => /usr/lib/libc.so.6 [System]",
+            "🔗 libm.so.6 => /usr/lib/libm.so.6 [System]",
             "🎁 libssl.so.1.1 => ~/.local/share/aegis_box/shared_libs/libssl.so.1.1 [LEGACY]",
             "🎁 libcrypto.so.1.1 => ~/.local/share/aegis_box/shared_libs/libcrypto.so.1.1 [LEGACY]"
         ]
@@ -243,15 +244,15 @@ class AegisBoxApp(QMainWindow):
             self.drawer.list_libs.addItem(item)
             
         self.drawer.diff_viewer.setHtml(
-            "<b>Deltas del sistema de archivos:</b><br><br>"
-            "<font color='#10B981'>[+] NUEVO: ~/.config/vivaldi/Default/Bookmarks</font><br>"
-            "<font color='#F59E0B'>[*] MODIFICADO: ~/.config/vivaldi/Default/Preferences</font><br>"
-            "<font color='#EF4444'>[-] ELIMINADO: ~/.cache/vivaldi/Default/lock</font>"
+            "<b>FileSystem Deltas:</b><br><br>"
+            "<font color='#10B981'>[+] NEW: ~/.config/vivaldi/Default/Bookmarks</font><br>"
+            "<font color='#F59E0B'>[*] MODIFIED: ~/.config/vivaldi/Default/Preferences</font><br>"
+            "<font color='#EF4444'>[-] DELETED: ~/.cache/vivaldi/Default/lock</font>"
         )
 
     def load_profile_into_editor(self, filename):
         self.active_profile_editing = filename
-        self.drawer.drawer_title.setText(f"Editando: {filename}")
+        self.drawer.drawer_title.setText(f"Editing: {filename}")
         
         profile_path = PROFILES_DIR / filename
         try:
@@ -279,7 +280,7 @@ class AegisBoxApp(QMainWindow):
             self.drawer.txt_prof_paths.setPlainText("\n".join(fs.get("persistent_paths", [])))
             self.drawer.txt_prof_libs.setPlainText("\n".join(data.get("legacy_libraries", [])))
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Fallo al cargar perfil: {e}")
+            QMessageBox.critical(self, "Error", f"Failed loading profile: {e}")
 
     def load_app_into_editor(self, app_id):
         self.active_app_editing_id = app_id
@@ -307,11 +308,10 @@ class AegisBoxApp(QMainWindow):
 
     def load_network_into_editor(self, net_name):
         self.active_net_editing_name = net_name
-        self.drawer.drawer_title.setText(f"Red: {net_name}")
+        self.drawer.drawer_title.setText(f"Network: {net_name}")
         
         self.drawer.txt_net_edit_name.setText(net_name)
         
-        # Pull IP dynamically
         ip = "10.10.10.1/24"
         try:
             res = subprocess.run(["ip", "addr", "show", net_name], capture_output=True, text=True)
