@@ -93,6 +93,10 @@ class AegisBoxApp(QMainWindow):
                 self.current_view = "libs"
                 self.workspace.title_lbl.setText(_("sidebar_cache"))
                 self.load_cached_libs()
+                from database import get_setting
+                mirror_url = get_setting("library_mirror", "https://archive.archlinux.org/packages/")
+                self.drawer.txt_mirror_url.setText(mirror_url)
+                self.drawer.show_mirror_view()
 
     # --- Table Click Handler ---
     def on_table_item_clicked(self, item):
@@ -604,6 +608,19 @@ class AegisBoxApp(QMainWindow):
             self.load_pending_sessions()
             self.drawer.list_libs.clear()
             self.drawer.diff_viewer.clear()
+
+    def on_save_mirror_clicked(self):
+        mirror_url = self.drawer.txt_mirror_url.text().strip()
+        if not mirror_url:
+            QMessageBox.warning(self, "Error", "Por favor, especifica una URL válida para el espejo.")
+            return
+            
+        try:
+            from database import set_setting
+            set_setting("library_mirror", mirror_url)
+            QMessageBox.information(self, "Éxito", _("toast_mirror_saved"))
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al guardar URL del espejo: {e}")
 
 def main():
     app = QApplication(sys.argv)

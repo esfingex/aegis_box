@@ -224,11 +224,36 @@ class DetailDrawerFrame(QFrame):
         net_editor_layout.addLayout(net_btn_layout)
         self.network_editor_container.hide()
         layout.addWidget(self.network_editor_container)
+        
+        # ----------------------------------------------------
+        # 🔗 CONTAINER 5: MIRROR SETTINGS (Legacy Libraries settings)
+        # ----------------------------------------------------
+        self.mirror_container = QWidget()
+        mirror_layout = QVBoxLayout(self.mirror_container)
+        mirror_layout.setContentsMargins(0, 0, 0, 0)
+        mirror_layout.setSpacing(15)
+        
+        mirror_form = QFormLayout()
+        self.txt_mirror_url = QLineEdit()
+        self.txt_mirror_url.setPlaceholderText("https://archive.archlinux.org/packages/")
+        mirror_form.addRow(_("lbl_mirror_url"), self.txt_mirror_url)
+        mirror_layout.addLayout(mirror_form)
+        
+        mirror_layout.addStretch()
+        
+        self.btn_save_mirror = QPushButton(_("btn_save_mirror"))
+        self.btn_save_mirror.setProperty("class", "btn-primary")
+        self.btn_save_mirror.clicked.connect(self.main_window.on_save_mirror_clicked)
+        mirror_layout.addWidget(self.btn_save_mirror)
+        
+        self.mirror_container.hide()
+        layout.addWidget(self.mirror_container)
 
     def show_audit_view(self):
         self.editor_container.hide()
         self.app_editor_container.hide()
         self.network_editor_container.hide()
+        self.mirror_container.hide()
         self.audit_container.show()
         self.drawer_title.setText(_("drawer_audit_title"))
 
@@ -236,6 +261,7 @@ class DetailDrawerFrame(QFrame):
         self.audit_container.hide()
         self.app_editor_container.hide()
         self.network_editor_container.hide()
+        self.mirror_container.hide()
         self.editor_container.show()
         self.drawer_title.setText(_("drawer_profile_title"))
 
@@ -243,6 +269,7 @@ class DetailDrawerFrame(QFrame):
         self.audit_container.hide()
         self.editor_container.hide()
         self.network_editor_container.hide()
+        self.mirror_container.hide()
         self.app_editor_container.show()
         self.drawer_title.setText(_("drawer_app_title"))
         
@@ -250,5 +277,14 @@ class DetailDrawerFrame(QFrame):
         self.audit_container.hide()
         self.editor_container.hide()
         self.app_editor_container.hide()
+        self.mirror_container.hide()
         self.network_editor_container.show()
         self.drawer_title.setText(_("drawer_net_title"))
+
+    def show_mirror_view(self):
+        self.audit_container.hide()
+        self.editor_container.hide()
+        self.app_editor_container.hide()
+        self.network_editor_container.hide()
+        self.mirror_container.show()
+        self.drawer_title.setText(_("mirror_title"))
