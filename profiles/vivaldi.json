@@ -1,0 +1,35 @@
+{
+  "profile_name": "vivaldi",
+  "description": "Navegación segura y aislada en RAM para Vivaldi. Preserva marcadores, contraseñas e historial de forma selectiva.",
+  "engine": "firejail",
+  "security_level": "medium",
+  "network": {
+    "enabled": true,
+    "virtual_identity": true,
+    "custom_mac": "auto",
+    "custom_ip": "dhcp"
+  },
+  "filesystem": {
+    "ephemeral_root": true,
+    "ram_overlay": true,
+    "persistent_paths": [
+      "~/.config/vivaldi/Default/Bookmarks",
+      "~/.config/vivaldi/Default/History",
+      "~/.config/vivaldi/Default/Login Data",
+      "~/.config/vivaldi/Default/Preferences",
+      "~/.config/vivaldi/Default/Favicons"
+    ],
+    "read_only_paths": [
+      "/boot",
+      "/etc",
+      "/usr"
+    ]
+  },
+  "sandbox": {
+    "deny_dbus": true,
+    "deny_audio": false,
+    "deny_video": false,
+    "gpu_acceleration": true
+  },
+  "legacy_libraries": []
+}

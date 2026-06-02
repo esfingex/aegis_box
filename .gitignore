@@ -1,0 +1,26 @@
+# 🐍 Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 📦 Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# 🛡️ Aegis Box database & runtime caches
+*.db
+*.sqlite
+/tmp/aegis_box/
+
+# 🧠 Private AI developer rules (DO NOT UPLOAD TO GITHUB)
+.clinerules
+.cursorrules
+
+# 🖥️ IDE / Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

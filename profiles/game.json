@@ -1,0 +1,34 @@
+{
+  "profile_name": "game",
+  "description": "Aislamiento ligero para juegos de Wine y nativos. Rendimiento máximo sin bloquear Anti-Cheats.",
+  "engine": "firejail",
+  "security_level": "low",
+  "network": {
+    "enabled": true,
+    "virtual_identity": false
+  },
+  "filesystem": {
+    "ephemeral_root": false,
+    "ram_overlay": false,
+    "write_overlay": true,
+    "persistent_paths": [
+      "~/Games",
+      "~/.local/share/Steam"
+    ],
+    "read_only_paths": [
+      "/boot",
+      "/sys"
+    ]
+  },
+  "sandbox": {
+    "deny_dbus": false,
+    "deny_audio": false,
+    "deny_video": false,
+    "gpu_acceleration": true
+  },
+  "legacy_libraries": [
+    "libssl.so.1.1",
+    "libcrypto.so.1.1",
+    "libstdc++.so.6"
+  ]
+}

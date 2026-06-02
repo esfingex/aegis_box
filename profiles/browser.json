@@ -1,0 +1,33 @@
+{
+  "profile_name": "browser",
+  "description": "Navegación segura y anónima. Sesión en RAM (tmpfs) con persistencia selectiva de marcadores.",
+  "engine": "firejail",
+  "security_level": "medium",
+  "network": {
+    "enabled": true,
+    "virtual_identity": true,
+    "custom_mac": "auto",
+    "custom_ip": "dhcp"
+  },
+  "filesystem": {
+    "ephemeral_root": true,
+    "ram_overlay": true,
+    "persistent_paths": [
+      "~/.mozilla/firefox/*.default-release/places.sqlite",
+      "~/.mozilla/firefox/*.default-release/bookmarkbackups",
+      "~/.config/google-chrome/Default/Bookmarks"
+    ],
+    "read_only_paths": [
+      "/boot",
+      "/etc",
+      "/usr"
+    ]
+  },
+  "sandbox": {
+    "deny_dbus": true,
+    "deny_audio": false,
+    "deny_video": false,
+    "gpu_acceleration": true
+  },
+  "legacy_libraries": []
+}

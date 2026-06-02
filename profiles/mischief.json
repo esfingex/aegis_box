@@ -1,0 +1,25 @@
+{
+  "profile_name": "mischief",
+  "description": "Aislamiento extremo (Paranoico). Sin red, sin acceso a tus carpetas privadas ni DBus. Para probar scripts dudosos.",
+  "engine": "bubblewrap",
+  "security_level": "high",
+  "network": {
+    "enabled": false,
+    "virtual_identity": false
+  },
+  "filesystem": {
+    "ephemeral_root": true,
+    "ram_overlay": true,
+    "persistent_paths": [],
+    "read_only_paths": [
+      "/"
+    ]
+  },
+  "sandbox": {
+    "deny_dbus": true,
+    "deny_audio": true,
+    "deny_video": true,
+    "gpu_acceleration": false
+  },
+  "legacy_libraries": []
+}
