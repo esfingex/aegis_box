@@ -171,6 +171,7 @@ def launch_sandbox(binary_path, profile_path, app_name):
     
     cmd = [
         "firejail",
+        f"--name=aegis-{session_id}",
         f"--private={overlay_dir}"
     ]
     
@@ -179,11 +180,24 @@ def launch_sandbox(binary_path, profile_path, app_name):
     if not net_data.get("enabled", True):
         cmd.append("--net=none")
     elif net_data.get("virtual_identity", False):
-        # Emulate a separate bridge, checking if it exists on host
-        if os.path.exists("/sys/class/net/aegis0"):
-            cmd.append("--net=aegis0")
+        # Discover bridge interface dynamically from database settings
+        bridge_name = get_setting("bridge_interface", "aegissand")
+        
+        # Verify it exists in the kernel
+        if os.path.exists(f"/sys/class/net/{bridge_name}"):
+            cmd.append(f"--net={bridge_name}")
+            
+            # Support custom MAC or IP address from the security profile
+            custom_mac = net_data.get("custom_mac", "auto")
+            custom_ip = net_data.get("custom_ip", "dhcp")
+            
+            if custom_mac and custom_mac != "auto":
+                cmd.append(f"--mac={custom_mac}")
+            
+            if custom_ip and custom_ip != "dhcp":
+                cmd.append(f"--ip={custom_ip}")
         else:
-            print("[!] Warning: Interfaz de red virtual 'aegis0' no encontrada en el host.")
+            print(f"[!] Warning: Interfaz de red virtual '{bridge_name}' no encontrada en el host.")
             print("[!]          Usando red de host por defecto para garantizar conexión a Internet.")
         
     cmd.append(binary_path)

@@ -33,6 +33,25 @@ class DetailDrawerFrame(QFrame):
         audit_layout = QVBoxLayout(self.audit_container)
         audit_layout.setContentsMargins(0, 0, 0, 0)
         
+        # Active session live monitoring metadata labels
+        from PySide6.QtWidgets import QFormLayout
+        self.meta_layout = QFormLayout()
+        self.meta_layout.setContentsMargins(5, 5, 5, 10)
+        
+        self.lbl_audit_status_title = QLabel(_("lbl_audit_status"))
+        self.lbl_audit_status_title.setStyleSheet("font-weight: bold; color: #E2E8F0;")
+        self.lbl_audit_status = QLabel("-")
+        self.lbl_audit_status.setStyleSheet("font-weight: bold;")
+        self.meta_layout.addRow(self.lbl_audit_status_title, self.lbl_audit_status)
+        
+        self.lbl_audit_net_info_title = QLabel(_("lbl_audit_net_info"))
+        self.lbl_audit_net_info_title.setStyleSheet("font-weight: bold; color: #E2E8F0;")
+        self.lbl_audit_net_info = QLabel("-")
+        self.lbl_audit_net_info.setStyleSheet("color: #10B981;")
+        self.meta_layout.addRow(self.lbl_audit_net_info_title, self.lbl_audit_net_info)
+        
+        audit_layout.addLayout(self.meta_layout)
+        
         self.tabs = QTabWidget()
         
         # Tab 1: Libraries
@@ -74,6 +93,13 @@ class DetailDrawerFrame(QFrame):
         
         # Action buttons
         audit_btns_layout = QHBoxLayout()
+        self.btn_kill_sandbox = QPushButton(_("btn_kill_sandbox"))
+        self.btn_kill_sandbox.setProperty("class", "btn-danger")
+        self.btn_kill_sandbox.setStyleSheet("background-color: #EF4444; color: #061712; font-weight: bold; padding: 8px;")
+        self.btn_kill_sandbox.clicked.connect(self.main_window.on_kill_sandbox_clicked)
+        self.btn_kill_sandbox.hide()
+        audit_btns_layout.addWidget(self.btn_kill_sandbox)
+        
         self.btn_discard = QPushButton(_("btn_discard"))
         self.btn_discard.setProperty("class", "btn-danger")
         self.btn_discard.clicked.connect(self.main_window.on_discard_clicked)
@@ -112,6 +138,20 @@ class DetailDrawerFrame(QFrame):
         self.chk_net_virtual = QCheckBox(_("net_chk_virtual"))
         net_group_layout.addWidget(self.chk_net_enabled)
         net_group_layout.addWidget(self.chk_net_virtual)
+        
+        # Form for Custom IP and MAC address fields
+        self.net_custom_form = QFormLayout()
+        self.lbl_prof_mac_title = QLabel(_("lbl_prof_mac"))
+        self.txt_prof_mac = QLineEdit()
+        self.txt_prof_mac.setPlaceholderText("auto (o 00:11:22:33:44:55)")
+        self.net_custom_form.addRow(self.lbl_prof_mac_title, self.txt_prof_mac)
+        
+        self.lbl_prof_ip_title = QLabel(_("lbl_prof_ip"))
+        self.txt_prof_ip = QLineEdit()
+        self.txt_prof_ip.setPlaceholderText("dhcp (o 10.10.10.5)")
+        self.net_custom_form.addRow(self.lbl_prof_ip_title, self.txt_prof_ip)
+        
+        net_group_layout.addLayout(self.net_custom_form)
         editor_layout.addWidget(net_group)
         
         # Toggles Performance
@@ -359,6 +399,9 @@ class DetailDrawerFrame(QFrame):
             self.drawer_title.setText(_("drawer_settings_title"))
 
         # Audit Container
+        self.lbl_audit_status_title.setText(_("lbl_audit_status"))
+        self.lbl_audit_net_info_title.setText(_("lbl_audit_net_info"))
+        self.btn_kill_sandbox.setText(_("btn_kill_sandbox"))
         self.tabs.setTabText(0, _("tab_libs"))
         self.tabs.setTabText(1, _("tab_diff"))
         self.tabs.setTabText(2, _("tab_script"))
@@ -366,6 +409,8 @@ class DetailDrawerFrame(QFrame):
         self.btn_commit.setText(_("btn_commit"))
 
         # Button and label updates
+        self.lbl_prof_mac_title.setText(_("lbl_prof_mac"))
+        self.lbl_prof_ip_title.setText(_("lbl_prof_ip"))
         self.btn_save_profile.setText(_("btn_save_profile"))
         self.btn_profile_delete.setText(_("btn_profile_delete"))
         self.btn_app_save.setText(_("btn_app_save"))

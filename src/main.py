@@ -294,6 +294,43 @@ class AegisBoxApp(QMainWindow):
                 profile_path = session["profile_name"]
             overlay_path = session["overlay_path"]
             
+            # 1. Update live session status and details
+            if session["status"] == "active":
+                self.drawer.lbl_audit_status.setText(_("lbl_status_active"))
+                self.drawer.lbl_audit_status.setStyleSheet("font-weight: bold; color: #10B981;")
+                
+                # Fetch live dynamic network configuration from namespace
+                ip_addr = "-"
+                mac_addr = "-"
+                try:
+                    res = subprocess.run(["firejail", f"--net.print=aegis-{session_id}"], capture_output=True, text=True, timeout=1.0)
+                    for line in res.stdout.splitlines():
+                        if "IP address" in line:
+                            ip_addr = line.split()[-1]
+                        elif "MAC address" in line:
+                            mac_addr = line.split()[-1]
+                except Exception:
+                    pass
+                    
+                if ip_addr != "-" or mac_addr != "-":
+                    self.drawer.lbl_audit_net_info.setText(f"IP: {ip_addr} | MAC: {mac_addr}")
+                else:
+                    self.drawer.lbl_audit_net_info.setText("-")
+                
+                # Toggle buttons: hide discard/commit and show Terminar Sandbox button
+                self.drawer.btn_discard.hide()
+                self.drawer.btn_commit.hide()
+                self.drawer.btn_kill_sandbox.show()
+            else:
+                self.drawer.lbl_audit_status.setText(_("lbl_status_finished"))
+                self.drawer.lbl_audit_status.setStyleSheet("font-weight: bold; color: #F59E0B;")
+                self.drawer.lbl_audit_net_info.setText(_("lbl_net_info_na"))
+                
+                # Toggle buttons: show discard/commit and hide Terminar Sandbox button
+                self.drawer.btn_discard.show()
+                self.drawer.btn_commit.show()
+                self.drawer.btn_kill_sandbox.hide()
+            
         script_code = (
             "#!/bin/bash\n"
             "# 🛡️ Aegis Box - Secure Isolated Sandbox Runtime\n"
@@ -325,6 +362,8 @@ class AegisBoxApp(QMainWindow):
             net = data.get("network", {})
             self.drawer.chk_net_enabled.setChecked(net.get("enabled", True))
             self.drawer.chk_net_virtual.setChecked(net.get("virtual_identity", False))
+            self.drawer.txt_prof_mac.setText(net.get("custom_mac", "auto"))
+            self.drawer.txt_prof_ip.setText(net.get("custom_ip", "dhcp"))
             
             fs = data.get("filesystem", {})
             self.drawer.chk_fs_ram.setChecked(fs.get("ram_overlay", False) or fs.get("ephemeral_root", False))
@@ -741,13 +780,13 @@ class AegisBoxApp(QMainWindow):
             "network": {
                 "enabled": self.drawer.chk_net_enabled.isChecked(),
                 "virtual_identity": self.drawer.chk_net_virtual.isChecked(),
-                "custom_mac": "auto" if self.drawer.chk_net_virtual.isChecked() else "",
-                "custom_ip": "dhcp" if self.drawer.chk_net_virtual.isChecked() else ""
+                "custom_mac": self.drawer.txt_prof_mac.text().strip() or "auto",
+                "custom_ip": self.drawer.txt_prof_ip.text().strip() or "dhcp"
             },
             "filesystem": {
                 "ephemeral_root": self.drawer.chk_fs_ram.isChecked(),
                 "ram_overlay": self.drawer.chk_fs_ram.isChecked(),
-                "write_overlay": not self.chk_fs_ram.isChecked(),
+                "write_overlay": not self.drawer.chk_fs_ram.isChecked(),
                 "persistent_paths": [line.strip() for line in self.drawer.txt_prof_paths.toPlainText().splitlines() if line.strip()],
                 "read_only_paths": ["/boot", "/etc", "/usr"]
             },
@@ -797,6 +836,8 @@ class AegisBoxApp(QMainWindow):
                 self.drawer.txt_prof_desc.clear()
                 self.drawer.txt_prof_paths.clear()
                 self.drawer.txt_prof_libs.clear()
+                self.drawer.txt_prof_mac.clear()
+                self.drawer.txt_prof_ip.clear()
                 self.drawer.chk_net_enabled.setChecked(True)
                 self.drawer.chk_net_virtual.setChecked(False)
                 self.drawer.chk_fs_ram.setChecked(False)
@@ -808,6 +849,39 @@ class AegisBoxApp(QMainWindow):
                 self.load_profiles_list()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error: {e}")
+
+    def on_kill_sandbox_clicked(self):
+        row = self.workspace.table.currentRow()
+        if row < 0:
+            return
+        session_id = self.workspace.table.item(row, 0).text()
+        
+        reply = QMessageBox.question(
+            self,
+            _("btn_kill_sandbox"),
+            _("dialog_sandbox_kill_confirm").format(session_id),
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                # Force shutdown Firejail sandbox uniquely named aegis-{session_id}
+                subprocess.run(["firejail", f"--shutdown=aegis-{session_id}"], capture_output=True, text=True)
+                
+                # Update status in DB as pending_commit
+                update_session_status(session_id, "pending_commit", finished=True)
+                
+                QMessageBox.information(
+                    self,
+                    _("btn_kill_sandbox"),
+                    _("toast_sandbox_killed").format(session_id)
+                )
+                
+                # Reload GUI
+                self.load_pending_sessions()
+                self.load_audit_into_drawer(session_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to terminate sandbox: {e}")
 
     def on_discard_clicked(self):
         row = self.workspace.table.currentRow()

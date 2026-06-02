@@ -65,6 +65,23 @@ def init_db():
         VALUES ('library_mirror', 'https://archive.archlinux.org/packages/')
     """)
     
+    # Auto-detect default bridge connection name on host
+    default_bridge = "aegissand"
+    try:
+        net_dir = Path("/sys/class/net")
+        if net_dir.exists():
+            for dev in net_dir.iterdir():
+                if (dev / "bridge").exists() and dev.name.startswith("aegis"):
+                    default_bridge = dev.name
+                    break
+    except Exception:
+        pass
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO settings (key, value) 
+        VALUES ('bridge_interface', ?)
+    """, (default_bridge,))
+    
     conn.commit()
     conn.close()
 

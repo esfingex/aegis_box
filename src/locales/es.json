@@ -75,5 +75,15 @@
   "btn_profile_delete": "🗑️ Eliminar Perfil",
   "dialog_profile_delete_title": "Eliminar Perfil",
   "dialog_profile_delete_confirm": "¿Estás seguro de que deseas eliminar permanentemente el perfil '{}'?",
-  "toast_profile_deleted": "Perfil '{}' eliminado con éxito."
+  "toast_profile_deleted": "Perfil '{}' eliminado con éxito.",
+  "btn_kill_sandbox": "🔌 Terminar Sandbox",
+  "dialog_sandbox_kill_confirm": "¿Estás seguro de que deseas forzar el cierre de la sesión de sandbox activa '{}'?",
+  "toast_sandbox_killed": "La sesión de sandbox '{}' ha sido terminada.",
+  "lbl_prof_mac": "MAC Personalizada:",
+  "lbl_prof_ip": "IP Personalizada:",
+  "lbl_audit_status": "Estado:",
+  "lbl_audit_net_info": "Red (IP / MAC):",
+  "lbl_status_active": "🟢 Activo (Ejecutándose)",
+  "lbl_status_finished": "🟡 Finalizado (Auditoría de Diffs)",
+  "lbl_net_info_na": "No Disponible (Finalizado)"
 }

@@ -75,5 +75,15 @@
   "btn_profile_delete": "🗑️ Delete Profile",
   "dialog_profile_delete_title": "Delete Profile",
   "dialog_profile_delete_confirm": "Are you sure you want to permanently delete the profile '{}'?",
-  "toast_profile_deleted": "Profile '{}' deleted successfully."
+  "toast_profile_deleted": "Profile '{}' deleted successfully.",
+  "btn_kill_sandbox": "🔌 Kill Sandbox",
+  "dialog_sandbox_kill_confirm": "Are you sure you want to force shutdown the active sandbox session '{}'?",
+  "toast_sandbox_killed": "Sandbox session '{}' has been terminated.",
+  "lbl_prof_mac": "Custom MAC Address:",
+  "lbl_prof_ip": "Custom IP Address:",
+  "lbl_audit_status": "Status:",
+  "lbl_audit_net_info": "Network (IP / MAC):",
+  "lbl_status_active": "🟢 Active (Running)",
+  "lbl_status_finished": "🟡 Finished (Auditing Diffs)",
+  "lbl_net_info_na": "Not Available (Finished)"
 }
