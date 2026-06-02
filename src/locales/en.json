@@ -71,7 +71,7 @@
   "toast_rollback_err": "Failed to rollback profile.",
   "drawer_settings_title": "⚙️ General Settings",
   "tab_script": "🚀 Launch Script",
-  "app_lbl_script_editor": "📝 Launcher Script Editor (.desktop)",
+  "app_lbl_script_editor": "📝 Sandbox Execution Script (Bash)",
   "btn_profile_delete": "🗑️ Delete Profile",
   "dialog_profile_delete_title": "Delete Profile",
   "dialog_profile_delete_confirm": "Are you sure you want to permanently delete the profile '{}'?",

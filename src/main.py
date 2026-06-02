@@ -14,10 +14,12 @@ from views.detail_drawer import DetailDrawerFrame
 from views.dialogs import AddAppDialog, CreateProfileDialog
 from i18n import _
 from style import THEME_QSS
-from database import get_pending_sessions, get_registered_apps, get_cached_libs, update_session_status
+from database import get_pending_sessions, get_registered_apps, get_cached_libs, update_session_status, register_app
 
 # Standard Profiles Path
 PROFILES_DIR = Path("/home/esfingex/workspace/aegis_box/profiles")
+APPS_DIR = Path("/home/esfingex/.local/share/aegis_box/apps")
+APPS_DIR.mkdir(parents=True, exist_ok=True)
 
 class AegisBoxApp(QMainWindow):
     def __init__(self):
@@ -352,26 +354,21 @@ class AegisBoxApp(QMainWindow):
             if idx >= 0:
                 self.drawer.combo_app_edit_profile.setCurrentIndex(idx)
 
-            # Read .desktop file content if it exists
-            desktop_path = app_data.get("desktop_path")
+            # Read transparent Bash wrapper script content if it exists
+            wrapper_path = APPS_DIR / app_id
             script_content = ""
-            if desktop_path and os.path.exists(desktop_path):
+            if wrapper_path.exists():
                 try:
-                    with open(desktop_path, "r", encoding="utf-8") as f:
+                    with open(wrapper_path, "r", encoding="utf-8") as f:
                         script_content = f.read()
                 except Exception as e:
-                    script_content = f"# Error reading launcher file: {e}"
+                    script_content = f"# Error reading wrapper script: {e}"
             else:
                 profile_path = app_data["profile_path"]
                 script_content = (
-                    "[Desktop Entry]\n"
-                    f"Name={app_data['display_name']} (Aegis)\n"
-                    "Comment=Aplicación Aislada de forma segura\n"
-                    f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {app_data['binary_path']} --profile {profile_path} --name \"{app_data['display_name']}\"\n"
-                    "Icon=security-high-symbolic\n"
-                    "Terminal=false\n"
-                    "Type=Application\n"
-                    "Categories=Utility;Security;\n"
+                    "#!/bin/bash\n"
+                    f"# Aegis Box Sandbox Wrapper for {app_data['display_name']}\n"
+                    f"exec /usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {app_data['binary_path']} --profile {profile_path} --name \"{app_data['display_name']}\" \"$@\"\n"
                 )
             self.drawer.txt_app_edit_script.setPlainText(script_content)
 
@@ -593,14 +590,25 @@ class AegisBoxApp(QMainWindow):
             app_id = os.path.basename(data["path"]).lower() + "-sandbox"
             profile_path = f"/home/esfingex/workspace/aegis_box/profiles/{data['profile']}"
             desktop_path = os.path.expanduser(f"~/.local/share/applications/{app_id}.desktop")
+            wrapper_path = APPS_DIR / app_id
             
             try:
-                with open(desktop_path, "w") as f:
+                # 1. Create transparent Bash wrapper script
+                with open(wrapper_path, "w", encoding="utf-8") as f:
+                    f.write(
+                        "#!/bin/bash\n"
+                        f"# Aegis Box Sandbox Wrapper for {data['name']}\n"
+                        f"exec /usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {data['path']} --profile {profile_path} --name \"{data['name']}\" \"$@\"\n"
+                    )
+                os.chmod(wrapper_path, 0o755)
+                
+                # 2. Create clean .desktop file pointing to wrapper
+                with open(desktop_path, "w", encoding="utf-8") as f:
                     f.write(
                         "[Desktop Entry]\n"
                         f"Name={data['name']} (Aegis)\n"
                         "Comment=Aplicación Aislada de forma segura\n"
-                        f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {data['path']} --profile {profile_path} --name \"{data['name']}\"\n"
+                        f"Exec={wrapper_path}\n"
                         "Icon=security-high-symbolic\n"
                         "Terminal=false\n"
                         "Type=Application\n"
@@ -644,26 +652,36 @@ class AegisBoxApp(QMainWindow):
             
         profile_path = f"/home/esfingex/workspace/aegis_box/profiles/{profile_file}"
         desktop_path = os.path.expanduser(f"~/.local/share/applications/{self.active_app_editing_id}.desktop")
+        wrapper_path = APPS_DIR / self.active_app_editing_id
         
         try:
-            # Save the manual edits directly from the script_editor QTextEdit!
+            # Save the manual edits directly into the Bash wrapper script!
             edited_script = self.drawer.txt_app_edit_script.toPlainText().strip()
             if edited_script:
-                with open(desktop_path, "w", encoding="utf-8") as f:
+                with open(wrapper_path, "w", encoding="utf-8") as f:
                     f.write(edited_script)
             else:
-                # Fallback to standard autogeneration with absolute path if empty
-                with open(desktop_path, "w") as f:
+                # Fallback to standard Bash wrapper script if empty
+                with open(wrapper_path, "w", encoding="utf-8") as f:
                     f.write(
-                        "[Desktop Entry]\n"
-                        f"Name={name} (Aegis)\n"
-                        "Comment=Aplicación Aislada de forma segura\n"
-                        f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {path} --profile {profile_path} --name \"{name}\"\n"
-                        "Icon=security-high-symbolic\n"
-                        "Terminal=false\n"
-                        "Type=Application\n"
-                        "Categories=Utility;Security;\n"
+                        "#!/bin/bash\n"
+                        f"# Aegis Box Sandbox Wrapper for {name}\n"
+                        f"exec /usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {path} --profile {profile_path} --name \"{name}\" \"$@\"\n"
                     )
+            os.chmod(wrapper_path, 0o755)
+            
+            # Make sure .desktop exists and points to this wrapper
+            with open(desktop_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "[Desktop Entry]\n"
+                    f"Name={name} (Aegis)\n"
+                    "Comment=Aplicación Aislada de forma segura\n"
+                    f"Exec={wrapper_path}\n"
+                    "Icon=security-high-symbolic\n"
+                    "Terminal=false\n"
+                    "Type=Application\n"
+                    "Categories=Utility;Security;\n"
+                )
             os.chmod(desktop_path, 0o755)
         except Exception as e:
             print(f"[-] Error: {e}")
@@ -691,6 +709,10 @@ class AegisBoxApp(QMainWindow):
             desktop_path = app_data["desktop_path"]
             if desktop_path and os.path.exists(desktop_path):
                 os.remove(desktop_path)
+                
+            wrapper_path = APPS_DIR / self.active_app_editing_id
+            if wrapper_path.exists():
+                wrapper_path.unlink()
             
             import sqlite3
             from database import DB_PATH

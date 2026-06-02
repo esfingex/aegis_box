@@ -196,7 +196,7 @@ class DetailDrawerFrame(QFrame):
                 padding: 6px;
             }
         """)
-        self.txt_app_edit_script.setPlaceholderText("[Desktop Entry]...")
+        self.txt_app_edit_script.setPlaceholderText("#!/bin/bash...")
         self.txt_app_edit_script.setMaximumHeight(180)
         script_group_layout.addWidget(self.txt_app_edit_script)
         app_editor_layout.addWidget(self.script_group)
