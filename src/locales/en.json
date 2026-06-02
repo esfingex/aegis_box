@@ -61,5 +61,15 @@
   "mirror_title": "Legacy Libraries Settings & Mirrors",
   "lbl_mirror_url": "Central Library Mirror URL:",
   "btn_save_mirror": "💾 Save Mirror URL",
-  "toast_mirror_saved": "Library mirror URL updated successfully!"
+  "toast_mirror_saved": "Library mirror URL updated successfully!",
+  "lbl_language": "Interface Language:",
+  "opt_english": "English",
+  "opt_spanish": "Spanish",
+  "lbl_version_history": "📜 Profile Version History:",
+  "btn_rollback": "↩️ Rollback to Selected",
+  "toast_rollback_ok": "Profile rolled back successfully!",
+  "toast_rollback_err": "Failed to rollback profile.",
+  "drawer_settings_title": "⚙️ General Settings",
+  "tab_script": "🚀 Launch Script",
+  "app_lbl_script_editor": "📝 Launcher Script Editor (.desktop)"
 }

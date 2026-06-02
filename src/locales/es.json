@@ -61,5 +61,15 @@
   "mirror_title": "Configuración de Librerías Legacy & Espejos",
   "lbl_mirror_url": "URL Espejo de Librerías:",
   "btn_save_mirror": "💾 Guardar URL del Espejo",
-  "toast_mirror_saved": "¡URL del espejo de librerías actualizada con éxito!"
+  "toast_mirror_saved": "¡URL del espejo de librerías actualizada con éxito!",
+  "lbl_language": "Idioma de la Interfaz:",
+  "opt_english": "Inglés",
+  "opt_spanish": "Español",
+  "lbl_version_history": "📜 Historial de Versiones:",
+  "btn_rollback": "↩️ Revertir a Seleccionado",
+  "toast_rollback_ok": "¡Perfil revertido con éxito!",
+  "toast_rollback_err": "Error al revertir el perfil.",
+  "drawer_settings_title": "⚙️ Ajustes Generales",
+  "tab_script": "🚀 Script de Lanzamiento",
+  "app_lbl_script_editor": "📝 Editor de Script del Lanzador (.desktop)"
 }

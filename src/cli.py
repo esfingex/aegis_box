@@ -162,7 +162,7 @@ def launch_sandbox(binary_path, profile_path, app_name):
     # Use LD_LIBRARY_PATH to point to virtual loader and preserve display variables
     env = {
         **os.environ,
-        "LD_LIBRARY_PATH": virtual_lib_path,
+        "LD_LIBRARY_PATH": f"{virtual_lib_path}:{os.environ.get('LD_LIBRARY_PATH', '')}:/usr/lib:/lib",
         "DISPLAY": os.environ.get("DISPLAY", ""),
         "WAYLAND_DISPLAY": os.environ.get("WAYLAND_DISPLAY", ""),
         "XAUTHORITY": os.environ.get("XAUTHORITY", ""),

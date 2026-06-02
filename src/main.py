@@ -60,6 +60,14 @@ class AegisBoxApp(QMainWindow):
         # Load initial data
         self.load_pending_sessions()
 
+        # Initialize Language Selector combobox index based on current loaded language
+        from i18n import ACTIVE_LANG
+        idx = self.drawer.combo_language.findData(ACTIVE_LANG)
+        if idx >= 0:
+            self.drawer.combo_language.blockSignals(True)
+            self.drawer.combo_language.setCurrentIndex(idx)
+            self.drawer.combo_language.blockSignals(False)
+
     # --- Navigation Handler ---
     def handle_navigation(self, clicked_btn):
         # Manage Add Buttons visibility dynamically based on current tab
@@ -152,12 +160,21 @@ class AegisBoxApp(QMainWindow):
                         except Exception:
                             pass
                             
-                        status = "Activo"
+                        status = "DOWN"
                         try:
-                            with open(dev / "operstate", "r") as f:
-                                status = f.read().strip().upper()
+                            # Read interface flags to determine administrative UP state (IFF_UP = 0x1)
+                            with open(dev / "flags", "r") as f:
+                                flags = int(f.read().strip(), 16)
+                            if flags & 1:
+                                status = "UP"
+                            else:
+                                status = "DOWN"
                         except Exception:
-                            pass
+                            try:
+                                with open(dev / "operstate", "r") as f:
+                                    status = f.read().strip().upper()
+                            except Exception:
+                                pass
                             
                         bridges.append({
                             "name": dev_name,
@@ -256,6 +273,37 @@ class AegisBoxApp(QMainWindow):
             "<font color='#EF4444'>[-] DELETED: ~/.cache/vivaldi/Default/lock</font>"
         )
 
+        # Generate and display execution script for the active sandbox
+        from database import get_session_by_id, get_registered_apps
+        session = get_session_by_id(session_id)
+        app_binary = "application-executable"
+        profile_path = "default.json"
+        overlay_path = f"~/.local/share/aegis_box/overlays/{session_id}"
+        
+        if session:
+            # Look up app in database
+            apps = get_registered_apps()
+            app = next((a for a in apps if a["display_name"] == session["app_name"] or a["app_id"] == session["app_name"]), None)
+            if app:
+                app_binary = app["binary_path"]
+                profile_path = app["profile_path"]
+            else:
+                app_binary = session["app_name"]
+                profile_path = session["profile_name"]
+            overlay_path = session["overlay_path"]
+            
+        script_code = (
+            "#!/bin/bash\n"
+            "# 🛡️ Aegis Box - Secure Isolated Sandbox Runtime\n"
+            f"# Session ID: {session_id}\n"
+            f"# Overlay Storage: {overlay_path}\n\n"
+            "firejail \\\n"
+            f"  --profile={profile_path} \\\n"
+            f"  --private={overlay_path} \\\n"
+            f"  {app_binary}\n"
+        )
+        self.drawer.script_viewer.setPlainText(script_code)
+
     def load_profile_into_editor(self, filename):
         self.active_profile_editing = filename
         self.drawer.drawer_title.setText(f"Editing: {filename}")
@@ -303,6 +351,29 @@ class AegisBoxApp(QMainWindow):
             idx = self.drawer.combo_app_edit_profile.findText(profile_filename)
             if idx >= 0:
                 self.drawer.combo_app_edit_profile.setCurrentIndex(idx)
+
+            # Read .desktop file content if it exists
+            desktop_path = app_data.get("desktop_path")
+            script_content = ""
+            if desktop_path and os.path.exists(desktop_path):
+                try:
+                    with open(desktop_path, "r", encoding="utf-8") as f:
+                        script_content = f.read()
+                except Exception as e:
+                    script_content = f"# Error reading launcher file: {e}"
+            else:
+                profile_path = app_data["profile_path"]
+                script_content = (
+                    "[Desktop Entry]\n"
+                    f"Name={app_data['display_name']} (Aegis)\n"
+                    "Comment=Aplicación Aislada de forma segura\n"
+                    f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {app_data['binary_path']} --profile {profile_path} --name \"{app_data['display_name']}\"\n"
+                    "Icon=security-high-symbolic\n"
+                    "Terminal=false\n"
+                    "Type=Application\n"
+                    "Categories=Utility;Security;\n"
+                )
+            self.drawer.txt_app_edit_script.setPlainText(script_content)
 
     def load_app_edit_profiles(self):
         self.drawer.combo_app_edit_profile.clear()
@@ -529,7 +600,7 @@ class AegisBoxApp(QMainWindow):
                         "[Desktop Entry]\n"
                         f"Name={data['name']} (Aegis)\n"
                         "Comment=Aplicación Aislada de forma segura\n"
-                        f"Exec=aegis-box run {data['path']} --profile {profile_path} --name \"{data['name']}\"\n"
+                        f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {data['path']} --profile {profile_path} --name \"{data['name']}\"\n"
                         "Icon=security-high-symbolic\n"
                         "Terminal=false\n"
                         "Type=Application\n"
@@ -575,17 +646,24 @@ class AegisBoxApp(QMainWindow):
         desktop_path = os.path.expanduser(f"~/.local/share/applications/{self.active_app_editing_id}.desktop")
         
         try:
-            with open(desktop_path, "w") as f:
-                f.write(
-                    "[Desktop Entry]\n"
-                    f"Name={name} (Aegis)\n"
-                    "Comment=Aplicación Aislada de forma segura\n"
-                    f"Exec=aegis-box run {path} --profile {profile_path} --name \"{name}\"\n"
-                    "Icon=security-high-symbolic\n"
-                    "Terminal=false\n"
-                    "Type=Application\n"
-                    "Categories=Utility;Security;\n"
-                )
+            # Save the manual edits directly from the script_editor QTextEdit!
+            edited_script = self.drawer.txt_app_edit_script.toPlainText().strip()
+            if edited_script:
+                with open(desktop_path, "w", encoding="utf-8") as f:
+                    f.write(edited_script)
+            else:
+                # Fallback to standard autogeneration with absolute path if empty
+                with open(desktop_path, "w") as f:
+                    f.write(
+                        "[Desktop Entry]\n"
+                        f"Name={name} (Aegis)\n"
+                        "Comment=Aplicación Aislada de forma segura\n"
+                        f"Exec=/usr/bin/python3 /home/esfingex/workspace/aegis_box/src/cli.py run {path} --profile {profile_path} --name \"{name}\"\n"
+                        "Icon=security-high-symbolic\n"
+                        "Terminal=false\n"
+                        "Type=Application\n"
+                        "Categories=Utility;Security;\n"
+                    )
             os.chmod(desktop_path, 0o755)
         except Exception as e:
             print(f"[-] Error: {e}")
@@ -705,7 +783,40 @@ class AegisBoxApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al guardar URL del espejo: {e}")
 
+    def on_language_changed(self, index):
+        selected_lang = self.drawer.combo_language.itemData(index)
+        if not selected_lang:
+            return
+        from i18n import set_active_lang
+        set_active_lang(selected_lang)
+        
+        # Trigger dynamic retranslation across all widgets
+        self.retranslate()
+
+    def retranslate(self):
+        # 1. Retranslate Window Title
+        self.setWindowTitle(_("app_title"))
+        
+        # 2. Retranslate Modular Frames
+        self.sidebar.retranslate()
+        self.workspace.retranslate()
+        self.drawer.retranslate()
+        
+        # 3. Reload current view content to refresh table/lists row text
+        if self.current_view == "dashboard":
+            self.load_pending_sessions()
+        elif self.current_view == "apps":
+            self.load_configured_apps()
+        elif self.current_view == "profiles":
+            self.load_profiles_list()
+        elif self.current_view == "networks":
+            self.load_networks_list()
+        elif self.current_view == "libs":
+            self.load_cached_libs()
+
 def main():
+    from i18n import load_lang_from_db
+    load_lang_from_db()
     app = QApplication(sys.argv)
     window = AegisBoxApp()
     window.show()

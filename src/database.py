@@ -168,3 +168,14 @@ def get_cached_libs():
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
+
+
+def get_session_by_id(session_id):
+    """Retrieves a session's details from database by ID."""
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None

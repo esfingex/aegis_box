@@ -51,6 +51,25 @@ class DetailDrawerFrame(QFrame):
         tab_diff_layout.addWidget(self.diff_viewer)
         self.tabs.addTab(self.tab_diff, _("tab_diff"))
         
+        # Tab 3: Launch Script
+        self.tab_script = QWidget()
+        tab_script_layout = QVBoxLayout(self.tab_script)
+        self.script_viewer = QTextEdit()
+        self.script_viewer.setReadOnly(True)
+        self.script_viewer.setPlaceholderText("...")
+        self.script_viewer.setStyleSheet("""
+            QTextEdit {
+                font-family: 'Courier New', 'Consolas', 'Fira Code', monospace;
+                background-color: #121417;
+                color: #10B981;
+                border: 1px solid #2D333F;
+                border-radius: 6px;
+                padding: 10px;
+            }
+        """)
+        tab_script_layout.addWidget(self.script_viewer)
+        self.tabs.addTab(self.tab_script, _("tab_script"))
+        
         audit_layout.addWidget(self.tabs)
         
         # Action buttons
@@ -154,6 +173,26 @@ class DetailDrawerFrame(QFrame):
         app_form_layout.addRow(_("app_lbl_profile"), self.combo_app_edit_profile)
         
         app_editor_layout.addLayout(app_form_layout)
+        
+        # Launcher script group
+        self.script_group = QGroupBox(_("app_lbl_script_editor"))
+        script_group_layout = QVBoxLayout(self.script_group)
+        self.txt_app_edit_script = QTextEdit()
+        self.txt_app_edit_script.setStyleSheet("""
+            QTextEdit {
+                font-family: 'Courier New', 'Consolas', 'Fira Code', monospace;
+                background-color: #121417;
+                color: #E2E8F0;
+                border: 1px solid #2D333F;
+                border-radius: 6px;
+                padding: 6px;
+            }
+        """)
+        self.txt_app_edit_script.setPlaceholderText("[Desktop Entry]...")
+        self.txt_app_edit_script.setMaximumHeight(180)
+        script_group_layout.addWidget(self.txt_app_edit_script)
+        app_editor_layout.addWidget(self.script_group)
+        
         app_editor_layout.addStretch()
         
         app_btn_layout = QHBoxLayout()
@@ -226,7 +265,7 @@ class DetailDrawerFrame(QFrame):
         layout.addWidget(self.network_editor_container)
         
         # ----------------------------------------------------
-        # 🔗 CONTAINER 5: MIRROR SETTINGS (Legacy Libraries settings)
+        # 🔗 CONTAINER 5: MIRROR & GENERAL SETTINGS
         # ----------------------------------------------------
         self.mirror_container = QWidget()
         mirror_layout = QVBoxLayout(self.mirror_container)
@@ -237,8 +276,17 @@ class DetailDrawerFrame(QFrame):
         self.txt_mirror_url = QLineEdit()
         self.txt_mirror_url.setPlaceholderText("https://archive.archlinux.org/packages/")
         mirror_form.addRow(_("lbl_mirror_url"), self.txt_mirror_url)
-        mirror_layout.addLayout(mirror_form)
         
+        self.lbl_language = QLabel(_("lbl_language"))
+        self.combo_language = QComboBox()
+        self.combo_language.setStyleSheet("background-color: #1A1D24; color: #E2E8F0; padding: 6px;")
+        self.combo_language.addItem(_("opt_english"), "en")
+        self.combo_language.addItem(_("opt_spanish"), "es")
+        # Block signals during initialization and only emit when manually changed
+        self.combo_language.currentIndexChanged.connect(self.main_window.on_language_changed)
+        mirror_form.addRow(self.lbl_language, self.combo_language)
+        
+        mirror_layout.addLayout(mirror_form)
         mirror_layout.addStretch()
         
         self.btn_save_mirror = QPushButton(_("btn_save_mirror"))
@@ -287,4 +335,44 @@ class DetailDrawerFrame(QFrame):
         self.app_editor_container.hide()
         self.network_editor_container.hide()
         self.mirror_container.show()
-        self.drawer_title.setText(_("mirror_title"))
+        self.drawer_title.setText(_("drawer_settings_title"))
+
+    def retranslate(self):
+        # Update Title dynamically based on what is active
+        if self.audit_container.isVisible():
+            self.drawer_title.setText(_("drawer_audit_title"))
+        elif self.editor_container.isVisible():
+            self.drawer_title.setText(_("drawer_profile_title"))
+        elif self.app_editor_container.isVisible():
+            self.drawer_title.setText(_("drawer_app_title"))
+        elif self.network_editor_container.isVisible():
+            self.drawer_title.setText(_("drawer_net_title"))
+        elif self.mirror_container.isVisible():
+            self.drawer_title.setText(_("drawer_settings_title"))
+
+        # Audit Container
+        self.tabs.setTabText(0, _("tab_libs"))
+        self.tabs.setTabText(1, _("tab_diff"))
+        self.tabs.setTabText(2, _("tab_script"))
+        self.btn_discard.setText(_("btn_discard"))
+        self.btn_commit.setText(_("btn_commit"))
+
+        # Button and label updates
+        self.btn_save_profile.setText(_("btn_save_profile"))
+        self.btn_app_save.setText(_("btn_app_save"))
+        self.btn_app_delete.setText(_("btn_app_delete"))
+        self.btn_net_up.setText(_("btn_net_up"))
+        self.btn_net_down.setText(_("btn_net_down"))
+        self.script_group.setTitle(_("app_lbl_script_editor"))
+        self.btn_net_delete.setText(_("btn_net_delete"))
+        self.btn_net_save.setText(_("btn_net_save"))
+        self.btn_save_mirror.setText(_("btn_save_mirror"))
+        self.lbl_language.setText(_("lbl_language"))
+
+        # Retranslate ComboBox language options
+        # Block signals so retranslating the combobox doesn't trigger the change handler recursively
+        self.combo_language.blockSignals(True)
+        self.combo_language.setItemText(0, _("opt_english"))
+        self.combo_language.setItemText(1, _("opt_spanish"))
+        self.combo_language.blockSignals(False)
+

@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
-    QTableWidget, QHeaderView
+    QTableWidget, QHeaderView, QAbstractItemView
 )
 from i18n import _
 
@@ -59,6 +59,9 @@ class WorkspaceFrame(QFrame):
             _("table_session_id"), _("table_app"), _("table_profile"), _("table_size")
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.itemClicked.connect(self.main_window.on_table_item_clicked)
         layout.addWidget(self.table)
 
@@ -67,3 +70,42 @@ class WorkspaceFrame(QFrame):
             item = self.table.item(i, 1) # Search matches the second column
             if item:
                 self.table.setRowHidden(i, text.lower() not in item.text().lower())
+
+    def retranslate(self):
+        # Translate Add Buttons and search bar
+        self.btn_add_app.setText(_("btn_add_app"))
+        self.btn_add_profile.setText(_("btn_add_profile"))
+        self.btn_add_network.setText(_("btn_add_network"))
+        self.search_bar.setPlaceholderText(_("search_placeholder"))
+        
+        # Translate Workspace Title and Table Header dynamically based on active view
+        view = self.main_window.current_view
+        match view:
+            case "dashboard":
+                self.title_lbl.setText(_("sidebar_dashboard"))
+                self.table.setHorizontalHeaderLabels([
+                    _("table_session_id"), _("table_app"), _("table_profile"), _("table_size")
+                ])
+            case "apps":
+                self.title_lbl.setText(_("sidebar_apps"))
+                self.table.setHorizontalHeaderLabels([
+                    _("table_app_id"), _("table_display_name"), _("table_exec_path"), _("app_lbl_profile")
+                ])
+            case "profiles":
+                self.title_lbl.setText(_("sidebar_profiles"))
+                self.table.setHorizontalHeaderLabels([
+                    _("table_profile_desc"), _("table_profile_engine")
+                ])
+            case "networks":
+                self.title_lbl.setText(_("sidebar_network"))
+                self.table.setHorizontalHeaderLabels([
+                    _("table_net_name"), _("table_net_ip"), _("table_net_status")
+                ])
+            case "libs":
+                self.title_lbl.setText(_("sidebar_cache"))
+                self.table.setHorizontalHeaderLabels([
+                    _("table_lib_name"), _("table_lib_version"), _("table_lib_size")
+                ])
+        
+        self.update()
+
