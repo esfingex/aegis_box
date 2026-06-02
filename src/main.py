@@ -746,6 +746,47 @@ class AegisBoxApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error: {e}")
 
+    def on_profile_delete_clicked(self):
+        if not self.active_profile_editing:
+            return
+            
+        profile_name = self.active_profile_editing
+        profile_path = PROFILES_DIR / profile_name
+        
+        reply = QMessageBox.question(
+            self,
+            _("dialog_profile_delete_title"),
+            _("dialog_profile_delete_confirm").format(profile_name),
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if profile_path.exists():
+                    profile_path.unlink()
+                QMessageBox.information(
+                    self,
+                    _("dialog_profile_delete_title"),
+                    _("toast_profile_deleted").format(profile_name)
+                )
+                self.active_profile_editing = None
+                
+                # Clear profile editor UI fields
+                self.drawer.txt_prof_desc.clear()
+                self.drawer.txt_prof_paths.clear()
+                self.drawer.txt_prof_libs.clear()
+                self.drawer.chk_net_enabled.setChecked(True)
+                self.drawer.chk_net_virtual.setChecked(False)
+                self.drawer.chk_fs_ram.setChecked(False)
+                self.drawer.chk_fs_gpu.setChecked(True)
+                self.drawer.chk_fs_dbus.setChecked(False)
+                self.drawer.combo_prof_engine.setCurrentIndex(0)
+                
+                # Refresh table
+                self.load_profiles_list()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error: {e}")
+
     def on_discard_clicked(self):
         row = self.workspace.table.currentRow()
         if row < 0:

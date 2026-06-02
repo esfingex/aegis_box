@@ -139,10 +139,18 @@ class DetailDrawerFrame(QFrame):
         list_group_layout.addWidget(self.txt_prof_libs)
         editor_layout.addWidget(list_group)
         
+        prof_btn_layout = QHBoxLayout()
+        self.btn_profile_delete = QPushButton(_("btn_profile_delete"))
+        self.btn_profile_delete.setProperty("class", "btn-danger")
+        self.btn_profile_delete.clicked.connect(self.main_window.on_profile_delete_clicked)
+        prof_btn_layout.addWidget(self.btn_profile_delete)
+        
         self.btn_save_profile = QPushButton(_("btn_save_profile"))
         self.btn_save_profile.setProperty("class", "btn-primary")
         self.btn_save_profile.clicked.connect(self.main_window.on_save_profile_clicked)
-        editor_layout.addWidget(self.btn_save_profile)
+        prof_btn_layout.addWidget(self.btn_save_profile)
+        
+        editor_layout.addLayout(prof_btn_layout)
         
         self.editor_container.hide()
         layout.addWidget(self.editor_container)
@@ -359,6 +367,7 @@ class DetailDrawerFrame(QFrame):
 
         # Button and label updates
         self.btn_save_profile.setText(_("btn_save_profile"))
+        self.btn_profile_delete.setText(_("btn_profile_delete"))
         self.btn_app_save.setText(_("btn_app_save"))
         self.btn_app_delete.setText(_("btn_app_delete"))
         self.btn_net_up.setText(_("btn_net_up"))

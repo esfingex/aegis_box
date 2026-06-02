@@ -71,5 +71,9 @@
   "toast_rollback_err": "Error al revertir el perfil.",
   "drawer_settings_title": "⚙️ Ajustes Generales",
   "tab_script": "🚀 Script de Lanzamiento",
-  "app_lbl_script_editor": "📝 Editor de Script del Lanzador (.desktop)"
+  "app_lbl_script_editor": "📝 Editor de Script del Lanzador (.desktop)",
+  "btn_profile_delete": "🗑️ Eliminar Perfil",
+  "dialog_profile_delete_title": "Eliminar Perfil",
+  "dialog_profile_delete_confirm": "¿Estás seguro de que deseas eliminar permanentemente el perfil '{}'?",
+  "toast_profile_deleted": "Perfil '{}' eliminado con éxito."
 }
