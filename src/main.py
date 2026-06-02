@@ -14,7 +14,7 @@ from views.detail_drawer import DetailDrawerFrame
 from views.dialogs import AddAppDialog, CreateProfileDialog
 from i18n import _
 from style import THEME_QSS
-from database import get_pending_sessions, get_registered_apps, get_cached_libs, update_session_status, register_app
+from database import get_pending_sessions, get_registered_apps, get_cached_libs, update_session_status, register_app, delete_app
 
 # Standard Profiles Path
 PROFILES_DIR = Path("/home/esfingex/workspace/aegis_box/profiles")
@@ -753,13 +753,7 @@ class AegisBoxApp(QMainWindow):
             if wrapper_path.exists():
                 wrapper_path.unlink()
             
-            import sqlite3
-            from database import DB_PATH
-            conn = sqlite3.connect(str(DB_PATH))
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM apps WHERE app_id = ?", (self.active_app_editing_id,))
-            conn.commit()
-            conn.close()
+            delete_app(self.active_app_editing_id)
             
             QMessageBox.information(self, "Eliminado", f"Aplicación '{app_data['display_name']}' eliminada.")
             self.active_app_editing_id = None

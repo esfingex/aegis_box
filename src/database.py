@@ -196,3 +196,13 @@ def get_session_by_id(session_id):
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def delete_app(app_id):
+    """Deletes a registered application from the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM apps WHERE app_id = ?", (app_id,))
+    conn.commit()
+    conn.close()
+
