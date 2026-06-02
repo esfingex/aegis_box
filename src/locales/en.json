@@ -57,5 +57,9 @@
   "app_lbl_profile": "Security Profile:",
   "net_lbl_name": "Network Name:",
   "net_lbl_ip": "Gateway IP Range:",
-  "net_lbl_stp": "Disable STP (Recommended)"
+  "net_lbl_stp": "Disable STP (Recommended)",
+  "mirror_title": "Legacy Libraries Settings & Mirrors",
+  "lbl_mirror_url": "Central Library Mirror URL:",
+  "btn_save_mirror": "💾 Save Mirror URL",
+  "toast_mirror_saved": "Library mirror URL updated successfully!"
 }

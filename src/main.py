@@ -3,7 +3,7 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter, QMessageBox, QFileDialog, QDialog, QInputDialog, QTableWidgetItem
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter, QMessageBox, QFileDialog, QDialog, QInputDialog, QTableWidgetItem, QListWidgetItem, QLineEdit
 from PySide6.QtCore import Qt
 
 # Import modular GUI components from views
@@ -13,6 +13,8 @@ from views.workspace import WorkspaceFrame
 from views.detail_drawer import DetailDrawerFrame
 from views.dialogs import AddAppDialog, CreateProfileDialog
 from i18n import _
+from style import THEME_QSS
+from database import get_pending_sessions, get_registered_apps, get_cached_libs, update_session_status
 
 # Standard Profiles Path
 PROFILES_DIR = Path("/home/esfingex/workspace/aegis_box/profiles")
@@ -93,6 +95,10 @@ class AegisBoxApp(QMainWindow):
                 self.current_view = "libs"
                 self.workspace.title_lbl.setText(_("sidebar_cache"))
                 self.load_cached_libs()
+                from database import get_setting
+                mirror_url = get_setting("library_mirror", "https://archive.archlinux.org/packages/")
+                self.drawer.txt_mirror_url.setText(mirror_url)
+                self.drawer.show_mirror_view()
 
     # --- Table Click Handler ---
     def on_table_item_clicked(self, item):
@@ -323,24 +329,69 @@ class AegisBoxApp(QMainWindow):
         self.drawer.txt_net_edit_ip.setText(ip)
 
     # --- Network Actions Handlers ---
+    def request_sudo_password(self):
+        """Asks the user for their sudo password securely via a dialog."""
+        password, ok = QInputDialog.getText(
+            self, 
+            "Autenticación Requerida", 
+            "Ingresa tu contraseña de superusuario (sudo) para configurar la red:", 
+            QLineEdit.Password
+        )
+        return password if ok else None
+
+    def execute_sudo_cmd(self, command_str, password):
+        """Executes a command with sudo, feeding the password through stdin securely."""
+        if not password:
+            return False
+        # Transform 'sudo cmd args' into 'sudo -S cmd args'
+        if command_str.startswith("sudo "):
+            command_str = "sudo -S " + command_str[5:]
+        try:
+            process = subprocess.Popen(
+                command_str,
+                shell=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout, stderr = process.communicate(input=f"{password}\n")
+            if process.returncode == 0:
+                return True
+            else:
+                print(f"[-] Command failed: {stderr.strip()}")
+                return False
+        except Exception as e:
+            print(f"[-] Execution error: {e}")
+            return False
+
     def on_add_network_clicked(self):
         net_name, ok1 = QInputDialog.getText(self, "Añadir Red Virtual", "Nombre de la interfaz puente (ej. aegis1):")
         if ok1 and net_name.strip():
             name = net_name.strip().lower().replace(" ", "")
             ip_range, ok2 = QInputDialog.getText(self, "Rango IP Gateway", "Especifica la Subred (ej. 10.10.20.1/24):", text="10.10.20.1/24")
             if ok2 and ip_range.strip():
+                password = self.request_sudo_password()
+                if not password:
+                    return
                 print(f"[*] Creando puente de red virtual '{name}'...")
                 try:
+                    success = False
                     if os.system("command -v nmcli &>/dev/null") == 0:
-                        os.system(f"sudo nmcli connection add type bridge con-name {name} ifname {name} ip4 {ip_range} &>/dev/null")
-                        os.system(f"sudo nmcli connection modify {name} bridge.stp no &>/dev/null")
-                        os.system(f"sudo nmcli connection up {name} &>/dev/null")
+                        s1 = self.execute_sudo_cmd(f"sudo nmcli connection add type bridge con-name {name} ifname {name} ip4 {ip_range}", password)
+                        s2 = self.execute_sudo_cmd(f"sudo nmcli connection modify {name} bridge.stp no", password)
+                        s3 = self.execute_sudo_cmd(f"sudo nmcli connection up {name}", password)
+                        success = s1 and s3
                     else:
-                        os.system(f"sudo ip link add name {name} type bridge &>/dev/null")
-                        os.system(f"sudo ip addr add {ip_range} dev {name} &>/dev/null")
-                        os.system(f"sudo ip link set {name} up &>/dev/null")
+                        s1 = self.execute_sudo_cmd(f"sudo ip link add name {name} type bridge", password)
+                        s2 = self.execute_sudo_cmd(f"sudo ip addr add {ip_range} dev {name}", password)
+                        s3 = self.execute_sudo_cmd(f"sudo ip link set {name} up", password)
+                        success = s1 and s3
                         
-                    QMessageBox.information(self, "Red Creada", f"Puente de red virtual '{name}' creado y activo.")
+                    if success:
+                        QMessageBox.information(self, "Red Creada", f"Puente de red virtual '{name}' creado y activo.")
+                    else:
+                        QMessageBox.warning(self, "Atención", f"Se intentó crear la red '{name}', pero el proceso falló. Verifica tu contraseña o privilegios.")
                     self.load_networks_list()
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"No se pudo crear la red virtual: {e}")
@@ -350,13 +401,22 @@ class AegisBoxApp(QMainWindow):
             QMessageBox.warning(self, "Atención", "Por favor, selecciona una red de la lista.")
             return
             
+        password = self.request_sudo_password()
+        if not password:
+            return
+            
         print(f"[*] Levantando interfaz puente '{self.active_net_editing_name}'...")
         try:
+            success = False
             if os.system("command -v nmcli &>/dev/null") == 0:
-                os.system(f"sudo nmcli connection up {self.active_net_editing_name} &>/dev/null")
+                success = self.execute_sudo_cmd(f"sudo nmcli connection up {self.active_net_editing_name}", password)
             else:
-                os.system(f"sudo ip link set {self.active_net_editing_name} up &>/dev/null")
-            QMessageBox.information(self, "Red Activa", f"La interfaz de red '{self.active_net_editing_name}' ha sido levantada (UP) con éxito.")
+                success = self.execute_sudo_cmd(f"sudo ip link set {self.active_net_editing_name} up", password)
+                
+            if success:
+                QMessageBox.information(self, "Red Activa", f"La interfaz de red '{self.active_net_editing_name}' ha sido levantada (UP) con éxito.")
+            else:
+                QMessageBox.warning(self, "Error", "No se pudo levantar la interfaz. Revisa tu contraseña.")
             self.load_networks_list()
             self.load_network_into_editor(self.active_net_editing_name)
         except Exception as e:
@@ -367,13 +427,22 @@ class AegisBoxApp(QMainWindow):
             QMessageBox.warning(self, "Atención", "Por favor, selecciona una red de la lista.")
             return
             
+        password = self.request_sudo_password()
+        if not password:
+            return
+            
         print(f"[*] Bajando interfaz puente '{self.active_net_editing_name}'...")
         try:
+            success = False
             if os.system("command -v nmcli &>/dev/null") == 0:
-                os.system(f"sudo nmcli connection down {self.active_net_editing_name} &>/dev/null")
+                success = self.execute_sudo_cmd(f"sudo nmcli connection down {self.active_net_editing_name}", password)
             else:
-                os.system(f"sudo ip link set {self.active_net_editing_name} down &>/dev/null")
-            QMessageBox.information(self, "Red Desactivada", f"La interfaz de red '{self.active_net_editing_name}' ha sido bajada (DOWN) con éxito.")
+                success = self.execute_sudo_cmd(f"sudo ip link set {self.active_net_editing_name} down", password)
+                
+            if success:
+                QMessageBox.information(self, "Red Desactivada", f"La interfaz de red '{self.active_net_editing_name}' ha sido bajada (DOWN) con éxito.")
+            else:
+                QMessageBox.warning(self, "Error", "No se pudo desactivar la interfaz. Revisa tu contraseña.")
             self.load_networks_list()
             self.load_network_into_editor(self.active_net_editing_name)
         except Exception as e:
@@ -391,14 +460,24 @@ class AegisBoxApp(QMainWindow):
         )
         
         if reply == QMessageBox.Yes:
+            password = self.request_sudo_password()
+            if not password:
+                return
             try:
+                success = False
                 if os.system("command -v nmcli &>/dev/null") == 0:
-                    os.system(f"sudo nmcli connection modify {self.active_net_editing_name} ipv4.addresses {ip_range} &>/dev/null")
-                    os.system(f"sudo nmcli connection up {self.active_net_editing_name} &>/dev/null")
+                    s1 = self.execute_sudo_cmd(f"sudo nmcli connection modify {self.active_net_editing_name} ipv4.addresses {ip_range}", password)
+                    s2 = self.execute_sudo_cmd(f"sudo nmcli connection up {self.active_net_editing_name}", password)
+                    success = s1 and s2
                 else:
-                    os.system(f"sudo ip addr flush dev {self.active_net_editing_name} &>/dev/null")
-                    os.system(f"sudo ip addr add {ip_range} dev {self.active_net_editing_name} &>/dev/null")
-                QMessageBox.information(self, "Red Modificada", f"Subred de '{self.active_net_editing_name}' actualizada con éxito.")
+                    s1 = self.execute_sudo_cmd(f"sudo ip addr flush dev {self.active_net_editing_name}", password)
+                    s2 = self.execute_sudo_cmd(f"sudo ip addr add {ip_range} dev {self.active_net_editing_name}", password)
+                    success = s1 and s2
+                    
+                if success:
+                    QMessageBox.information(self, "Red Modificada", f"Subred de '{self.active_net_editing_name}' actualizada con éxito.")
+                else:
+                    QMessageBox.warning(self, "Error", "No se pudo reconfigurar la red. Revisa tu contraseña.")
                 self.load_networks_list()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo reconfigurar la red: {e}")
@@ -414,15 +493,23 @@ class AegisBoxApp(QMainWindow):
         )
         
         if reply == QMessageBox.Yes:
+            password = self.request_sudo_password()
+            if not password:
+                return
             try:
+                success = False
                 if os.system("command -v nmcli &>/dev/null") == 0:
-                    os.system(f"sudo nmcli connection delete {self.active_net_editing_name} &>/dev/null")
+                    success = self.execute_sudo_cmd(f"sudo nmcli connection delete {self.active_net_editing_name}", password)
                 else:
-                    os.system(f"sudo ip link delete {self.active_net_editing_name} &>/dev/null")
-                QMessageBox.information(self, "Red Eliminada", f"Puente de red '{self.active_net_editing_name}' destruido limpiamente.")
-                self.active_net_editing_name = None
-                self.drawer.txt_net_edit_name.clear()
-                self.drawer.txt_net_edit_ip.clear()
+                    success = self.execute_sudo_cmd(f"sudo ip link delete {self.active_net_editing_name}", password)
+                    
+                if success:
+                    QMessageBox.information(self, "Red Eliminada", f"Puente de red '{self.active_net_editing_name}' destruido limpiamente.")
+                    self.active_net_editing_name = None
+                    self.drawer.txt_net_edit_name.clear()
+                    self.drawer.txt_net_edit_ip.clear()
+                else:
+                    QMessageBox.warning(self, "Error", "No se pudo eliminar el puente de red. Revisa tu contraseña.")
                 self.load_networks_list()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo eliminar el puente: {e}")
@@ -604,6 +691,19 @@ class AegisBoxApp(QMainWindow):
             self.load_pending_sessions()
             self.drawer.list_libs.clear()
             self.drawer.diff_viewer.clear()
+
+    def on_save_mirror_clicked(self):
+        mirror_url = self.drawer.txt_mirror_url.text().strip()
+        if not mirror_url:
+            QMessageBox.warning(self, "Error", "Por favor, especifica una URL válida para el espejo.")
+            return
+            
+        try:
+            from database import set_setting
+            set_setting("library_mirror", mirror_url)
+            QMessageBox.information(self, "Éxito", _("toast_mirror_saved"))
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al guardar URL del espejo: {e}")
 
 def main():
     app = QApplication(sys.argv)

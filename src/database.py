@@ -51,6 +51,20 @@ def init_db():
         )
     """)
     
+    # 4. Global Settings Table for dynamic configurable variables (like library download mirrors)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    """)
+    
+    # Prefill default library mirror URL
+    cursor.execute("""
+        INSERT OR IGNORE INTO settings (key, value) 
+        VALUES ('library_mirror', 'https://archive.archlinux.org/packages/')
+    """)
+    
     conn.commit()
     conn.close()
 
@@ -58,6 +72,23 @@ def get_db_connection():
     """Returns an active SQLite database connection."""
     init_db()
     return sqlite3.connect(str(DB_PATH))
+
+def get_setting(key, default=""):
+    """Reads a setting value from database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else default
+
+def set_setting(key, value):
+    """Saves or updates a setting value in database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, str(value)))
+    conn.commit()
+    conn.close()
 
 # --- Session Management Functions ---
 
