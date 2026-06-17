@@ -47,4 +47,4 @@ aegis-box run /usr/bin/vivaldi --profile /home/esfingex/workspace/aegis_box/prof
 ---
 
 ## 🔒 Licencia
-Este proyecto es software libre bajo la licencia MIT.
+Este proyecto es software libre bajo la licencia GNU General Public License v3.0 (GPLv3).
