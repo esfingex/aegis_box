@@ -24,3 +24,5 @@ ENV/
 *.swp
 *.swo
 .DS_Store
+.agents/skills/ui-ux-pro-max-skill/
+agent-framework/skills/ui-ux-pro-max-skill/
